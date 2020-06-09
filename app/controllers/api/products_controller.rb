@@ -1,7 +1,20 @@
 class Api::ProductsController < ApplicationController
 
 def index
-  @products = Product.all
+  @products = Product.all 
+  if params[:search]
+    @products = @products.where("name iLIKE ?", "%#{params[:search]}%")
+  end
+  if params[:discount]
+    @products = @products.where("price < ?", 9)
+  end
+  if params[:sort] == "price"
+    if params[:sort_order] == "asc" 
+      @products = @products.order[:price]
+    elsif params[:sort_order] == "dsc" 
+      @products = @products.order[price: :desc]
+    end
+  end
   render "index.json.jb"
 end
 
@@ -11,25 +24,34 @@ def show
 end
 
 def create
-  product = Product.new(
+  @product = Product.new(
     name: params[:name],
     price: params[:price],
-    image_url: params[:image_url],
-    description: params[:description]
+    description: params[:description],
+    in_stock: params[:in_stock]
   )
-  product.save
-  render "index.json.jb"
+  #happy path
+  if @product.save
+    render "index.json.jb"
+  #sad path
+  else
+    render json: {errors: @product.errors}, status: :unprocessable_entity
+  end
 end
 
 def update
   @product = Product.find(params[:id])
   @product.name = params[:name] || @product.name
   @product.price = params[:price] || @product.price
-  @product.image_url = params[:image_url] || @product.image_url
   @product.description = params[:description] || @product.description
-
-  @product.save
-  render "products.json.jb"
+  @product.in_stock = params[:in_stock] || @product.in_stock
+#happy path
+  if product.save
+    render "index.json.jb"
+#sad path
+  else
+    render json: { errors: @product.errors.full_messages }, status: :unprocessable_entity
+  end
 end
 
 def destroy
